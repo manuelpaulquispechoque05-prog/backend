@@ -124,3 +124,36 @@ export const deleteRe = (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * PATCH /api/reportes/:id/estado - Actualiza parcialmente el estado de un reporte
+ * Recibe: estado (obligatorio) - valores: 'Pendiente', 'En Reparación', 'Solucionado'
+ * Retorna: 200 OK con reporte actualizado | 400 Bad Request si estado inválido | 404 Not Found si no existe
+ * Validación: Verifico que el estado sea uno de los valores permitidos
+ * Autor: Paul Quispe - Programación IV
+ */
+export const patchEstado = (req, res, next) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { estado } = req.body;
+
+    const estadosValidos = ['Pendiente', 'En Reparación', 'Solucionado'];
+
+    if (!estado || !estadosValidos.includes(estado)) {
+      return res.status(400).json({
+        error: "Bad Request",
+        mensaje: `Estado inválido. Valores permitidos: ${estadosValidos.join(", ")}`
+      });
+    }
+
+    const reporteActualizado = updateReporte(id, { estado });
+
+    if (!reporteActualizado) {
+      return res.status(404).json({ error: "Reporte no encontrado" });
+    }
+
+    res.status(200).json(reporteActualizado);
+  } catch (error) {
+    next(error);
+  }
+};
