@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StudySync - Eventos en Tiempo Real</title>
+  <!-- Tailwind por CDN: sin build, sin npm, ideal para un demo rápido del docente -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen flex flex-col items-center p-6">
+  <header class="text-center mb-8">
+    <h1 class="text-3xl font-bold text-emerald-400">StudySync</h1>
+    <p class="text-gray-400 mt-1">Eventos en Tiempo Real — Redis Pub/Sub + SSE</p>
+  </header>
+
+  <div class="w-full max-w-2xl bg-gray-800 rounded-xl shadow-lg p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h2 class="text-lg font-semibold text-emerald-300">Últimos eventos</h2>
+      <span id="contador" class="text-sm text-gray-400">0 eventos</span>
+    </div>
+
+    <!-- Indicador de estado de conexión al stream SSE -->
+    <div id="estado-conexion" class="text-sm text-center py-2 mb-4 rounded bg-gray-700 text-yellow-300">
+      Conectando al stream...
+    </div>
+
+    <!-- Lista dinámica donde se renderizan los eventos entrantes -->
+    <ul id="lista-eventos" class="space-y-3 max-h-96 overflow-y-auto"></ul>
+  </div>
+
+  <footer class="mt-8 text-gray-500 text-xs">
+    Programación IV — Paul Quispe
+  </footer>
+
+  <script>
+    // IIFE: aislamos las variables del scope global
+    (() => {
+      const lista = document.getElementById('lista-eventos');
+      const contador = document.getElementById('contador');
+      const estado = document.getElementById('estado-conexion');
+      let total = 0;
+
+      // EventSource: API nativa del navegador para SSE.
+      // La URL es relativa porque el index.html se sirve desde el mismo
+      // servidor Express que expone /api/reportes/stream.
+      const eventSource = new EventSource('/api/reportes/stream');
+
+      // Se dispara cuando el navegador logra conectar
+      eventSource.onopen = () => {
+        estado.textContent = '✅ Conectado al stream de eventos';
+        estado.className = 'text-sm text-center py-2 mb-4 rounded bg-green-900 text-green-300';
+      };
+
+      // Se dispara en CADA mensaje que llega del stream
+      eventSource.onmessage = (e) => {
+        try {
+          // e.data es un string. El backend lo envía con formato "data: JSON\n\n"
+          const evento = JSON.parse(e.data);
+          total++;
+          contador.textContent = `${total} eventos`;
+
+          // Creamos un elemento <li> para cada evento con estilo según su tipo
+          const item = document.createElement('li');
+          item.className = 'bg-gray-700 rounded-lg p-3 border-l-4';
+
+          // Color del borde izquierdo según el tipo de evento
+          const badges = {
+            'reporte.creado': 'border-green-500',
+            'reporte.actualizado': 'border-blue-500',
+            'reporte.eliminado': 'border-red-500'
+          };
+          item.className += ' ' + (badges[evento.type] || 'border-gray-500');
+
+          const labels = {
+            'reporte.creado': 'CREADO',
+            'reporte.actualizado': 'ACTUALIZADO',
+            'reporte.eliminado': 'ELIMINADO'
+          };
+
+          // Renderizamos la tarjeta con la info del evento
+          item.innerHTML = `
+            <div class="flex justify-between items-start">
+              <span class="text-xs font-bold uppercase tracking-wide
+                ${evento.type === 'reporte.creado' ? 'text-green-400' :
+                  evento.type === 'reporte.actualizado' ? 'text-blue-400' :
+                  evento.type === 'reporte.eliminado' ? 'text-red-400' : 'text-gray-400'}">
+                ${labels[evento.type] || evento.type}
+              </span>
+              <span class="text-xs text-gray-500">
+                ${new Date(evento.timestamp).toLocaleTimeString()}
+              </span>
+            </div>
+            <p class="text-sm mt-1">
+              ${evento.data.titulo || `ID: ${evento.data.id}`}
+            </p>
+            ${evento.data.ubicacion ? `<p class="text-xs text-gray-400 mt-1">${evento.data.ubicacion}</p>` : ''}
+            ${evento.data.estado ? `<span class="inline-block text-xs mt-1 px-2 py-0.5 rounded-full bg-gray-600 text-gray-200">${evento.data.estado}</span>` : ''}
+          `;
+
+          // prepend = el evento más nuevo aparece arriba
+          lista.prepend(item);
+        } catch {
+          // Ignoramos silenciosamente mensajes malformados (heartbeats, etc.)
+        }
+      };
+
+      // Se dispara si la conexión se cae (timeout, servidor caído)
+      eventSource.onerror = () => {
+        estado.textContent = '❌ Error de conexión. Reconectando...';
+        estado.className = 'text-sm text-center py-2 mb-4 rounded bg-red-900 text-red-300';
+        // EventSource reconecta automáticamente, no necesitamos lógica extra
+      };
+    })();
+  </script>
+</body>
+</html>

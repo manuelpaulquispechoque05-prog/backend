@@ -6,6 +6,7 @@ import {
   deleteReporte,
   getReportesByUbicacion
 } from '../models/reporte.model.js';
+import { publishEvent } from '../services/redis.service.js';
 
 /**
  * GET /api/reportes - Obtiene todos los reportes con filtro opcional por ubicación
@@ -72,6 +73,7 @@ export const create = (req, res, next) => {
     }
 
     const nuevoReporte = createReporte({ titulo, descripcion, ubicacion });
+    publishEvent('reporte.creado', nuevoReporte);
     res.status(201).json(nuevoReporte);
   } catch (error) {
     next(error);
@@ -99,6 +101,7 @@ export const update = (req, res, next) => {
       return res.status(404).json({ error: "Reporte no encontrado" });
     }
 
+    publishEvent('reporte.actualizado', reporteActualizado);
     res.status(200).json(reporteActualizado);
   } catch (error) {
     next(error);
@@ -119,6 +122,7 @@ export const deleteRe = (req, res, next) => {
       return res.status(404).json({ error: "Reporte no encontrado" });
     }
 
+    publishEvent('reporte.eliminado', { id });
     res.status(200).json({ mensaje: "Reporte eliminado correctamente" });
   } catch (error) {
     next(error);
@@ -152,6 +156,7 @@ export const patchEstado = (req, res, next) => {
       return res.status(404).json({ error: "Reporte no encontrado" });
     }
 
+    publishEvent('reporte.actualizado', reporteActualizado);
     res.status(200).json(reporteActualizado);
   } catch (error) {
     next(error);
