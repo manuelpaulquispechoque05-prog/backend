@@ -31,6 +31,8 @@ import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import swaggerUi from 'swagger-ui-express';
 import reporteRoutes from './routes/reporte.routes.js';
+import authRoutes from './routes/auth.routes.js';
+import comentarioRoutes from './routes/comentario.routes.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 // initRedis() crea las conexiones (publisher + subscriber) a Upstash Redis.
 // startSubscriber() arranca el listener de eventos del canal 'reportes:eventos'.
@@ -51,7 +53,7 @@ const PORT = process.env.PORT || 3000;
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  allowedHeaders: ['Content-Type']
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json());
@@ -84,6 +86,8 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Monta las rutas de reportes (CRUD + SSE stream)
 app.use('/api/reportes', reporteRoutes);
+app.use('/api/reportes/:reporteId/comentarios', comentarioRoutes);
+app.use('/api/auth', authRoutes);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', mensaje: 'API StudySync funcionando' });

@@ -28,6 +28,15 @@ const options = {
       title: 'StudySync API - Reportes',
       version: '1.0.0',
     },
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT'
+        }
+      }
+    },
   },
   apis: ['./src/routes/*.routes.js', './src/server.js'],
 };

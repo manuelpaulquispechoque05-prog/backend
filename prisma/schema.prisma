@@ -7,13 +7,40 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Usuario {
+  id         String       @id @default(uuid())
+  nombre     String
+  email      String       @unique
+  password   String
+  rol        String       @default("USUARIO")
+  reportes   Reporte[]
+  comentarios Comentario[]
+
+  @@map("usuarios")
+}
+
 model Reporte {
-  id            String   @id @default(uuid())
+  id            String      @id @default(uuid())
   titulo        String
-  descripcion   String   @default("")
+  descripcion   String      @default("")
   ubicacion     String
-  estado        String   @default("Pendiente")
-  fechaCreacion DateTime @default(now()) @map("fecha_creacion")
+  estado        String      @default("Pendiente")
+  fechaCreacion DateTime    @default(now()) @map("fecha_creacion")
+  usuarioId     String?
+  usuario       Usuario?    @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  comentarios   Comentario[]
 
   @@map("reportes")
+}
+
+model Comentario {
+  id         String   @id @default(uuid())
+  nota       String
+  fecha      DateTime @default(now())
+  reporteId  String
+  reporte    Reporte  @relation(fields: [reporteId], references: [id], onDelete: Cascade)
+  usuarioId  String
+  usuario    Usuario  @relation(fields: [usuarioId], references: [id], onDelete: Restrict)
+
+  @@map("comentarios")
 }

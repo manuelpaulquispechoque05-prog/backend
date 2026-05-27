@@ -27,6 +27,7 @@ import {
 // addClient registra la response HTTP en el Set del sse-manager
 // para que broadcast() pueda escribirle eventos en tiempo real
 import { addClient } from '../services/sse-manager.service.js';
+import { authenticate, authorize } from '../middlewares/auth.js';
 
 const router = express.Router();
 
@@ -183,7 +184,7 @@ router.post('/', create);
  *       404:
  *         description: Reporte no encontrado
  */
-router.put('/:id', update);
+router.put('/:id', authenticate, authorize('ADMINISTRADOR'), update);
 /**
  * @openapi
  * /api/reportes/{id}:
@@ -217,7 +218,7 @@ router.put('/:id', update);
  *       404:
  *         description: Reporte no encontrado
  */
-router.patch('/:id', patchEstado);
+router.patch('/:id', authenticate, authorize('ADMINISTRADOR'), patchEstado);
 /**
  * @openapi
  * /api/reportes/{id}:
@@ -237,6 +238,6 @@ router.patch('/:id', patchEstado);
  *       404:
  *         description: Reporte no encontrado
  */
-router.delete('/:id', deleteRe);
+router.delete('/:id', authenticate, authorize('ADMINISTRADOR'), deleteRe);
 
 export default router;

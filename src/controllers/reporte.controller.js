@@ -32,6 +32,7 @@ import {
 // publishEvent() viene de redis.service.js.
 // Cada handler CRUD publica un mensaje en el canal 'reportes:eventos' de Redis.
 import { publishEvent } from '../services/redis.service.js';
+import prisma from '../config/database.js';
 
 export const getAll = async (req, res, next) => {
   try {
@@ -79,7 +80,22 @@ export const create = async (req, res, next) => {
       });
     }
 
-    const nuevoReporte = await createReporte({ titulo, descripcion, ubicacion });
+    const ADMIN_ID = "b32a0547-3ffb-41d4-91be-9820df02bbd4";
+
+    let usuarioId = req.usuario?.id || ADMIN_ID;
+
+    try {
+      await prisma.usuario.findUniqueOrThrow({ where: { id: usuarioId } });
+    } catch {
+      usuarioId = null;
+    }
+
+    const nuevoReporte = await createReporte({
+      titulo,
+      descripcion,
+      ubicacion,
+      usuarioId
+    });
     // Publico evento en Redis: el subscriber lo recibe y broadcast() lo envía a los clientes SSE
     publishEvent('reporte.creado', nuevoReporte);
     res.status(201).json(nuevoReporte);
