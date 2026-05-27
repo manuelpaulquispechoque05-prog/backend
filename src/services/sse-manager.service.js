@@ -1,3 +1,20 @@
+// ============================================================
+// sse-manager.service.js — Gestor de clientes SSE
+// ============================================================
+// ¿Qué es? Es el puente entre Redis y los clientes conectados via SSE.
+// ¿Para qué sirve? Mantiene un Set de respuestas HTTP activas y
+//   reenvía los eventos de Redis a TODOS los clientes simultáneamente.
+// ¿Cómo funciona? addClient() registra un cliente nuevo en el Set.
+//   Cuando redis.service.js recibe un evento, llama a broadcast()
+//   que itera sobre el Set y escribe "data: JSON\n\n" en cada response.
+// ¿Cómo se conecta?
+//   - addClient() ← llamado desde reporte.routes.js (GET /stream)
+//   - broadcast() ← llamado desde redis.service.js (subscriber.on('message'))
+//   - getClientCount() ← opcional, para monitoreo
+// Yo, Paul Quispe - Programación IV, diseñé esto para no saturar
+// Upstash con una conexión Redis por cada cliente.
+// ============================================================
+
 // Set en memoria que almacena las respuestas HTTP (res) de todos los clientes
 // conectados al stream SSE. Elegimos Set porque:
 // - No permite duplicados: si un cliente ya está, no se agrega de nuevo

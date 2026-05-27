@@ -1,4 +1,24 @@
 <!DOCTYPE html>
+<!-- ============================================================
+     public/index.html — Página demo del stream SSE
+     ============================================================
+     ¿Qué es? Una página HTML estática que se sirve en GET /.
+     ¿Para qué sirve? El docente puede abrir esta página en el
+       navegador y ver en tiempo real los eventos que ocurren en la
+       API (crear, actualizar, eliminar reportes) sin necesidad de
+       tener Angular instalado.
+     ¿Cómo funciona?
+       1. Express.serve('public') sirve este archivo en GET /
+       2. El JavaScript crea un EventSource al endpoint /api/reportes/stream
+       3. Cada vez que llega un evento, lo pinta en una lista con Tailwind
+     ¿Cómo se conecta?
+       - Se sirve desde server.js via express.static('public')
+       - Consume el mismo endpoint SSE que Angular usará después
+     Yo, Paul Quispe - Programación IV, creé esta página para cumplir
+     con el requisito del Texto Guía del ingeniero Requena de tener
+     una carpeta public/ con vista estática, y de paso tener una
+     herramienta de depuración visual durante el desarrollo.
+     ============================================================ -->
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -45,7 +65,7 @@
       // servidor Express que expone /api/reportes/stream.
       const eventSource = new EventSource('/api/reportes/stream');
 
-      // Se dispara cuando el navegador logra conectar
+      // Se dispara cuando el navegador logra conectar al stream
       eventSource.onopen = () => {
         estado.textContent = '✅ Conectado al stream de eventos';
         estado.className = 'text-sm text-center py-2 mb-4 rounded bg-green-900 text-green-300';
@@ -59,11 +79,12 @@
           total++;
           contador.textContent = `${total} eventos`;
 
-          // Creamos un elemento <li> para cada evento con estilo según su tipo
+          // Creo un elemento <li> para cada evento con estilo según su tipo
           const item = document.createElement('li');
           item.className = 'bg-gray-700 rounded-lg p-3 border-l-4';
 
           // Color del borde izquierdo según el tipo de evento
+          // Verde = creado, Azul = actualizado, Rojo = eliminado
           const badges = {
             'reporte.creado': 'border-green-500',
             'reporte.actualizado': 'border-blue-500',
@@ -77,7 +98,7 @@
             'reporte.eliminado': 'ELIMINADO'
           };
 
-          // Renderizamos la tarjeta con la info del evento
+          // Renderizo la tarjeta con la info del evento
           item.innerHTML = `
             <div class="flex justify-between items-start">
               <span class="text-xs font-bold uppercase tracking-wide
@@ -97,10 +118,10 @@
             ${evento.data.estado ? `<span class="inline-block text-xs mt-1 px-2 py-0.5 rounded-full bg-gray-600 text-gray-200">${evento.data.estado}</span>` : ''}
           `;
 
-          // prepend = el evento más nuevo aparece arriba
+          // prepend = el evento más nuevo aparece arriba de la lista
           lista.prepend(item);
         } catch {
-          // Ignoramos silenciosamente mensajes malformados (heartbeats, etc.)
+          // Ignoro silenciosamente mensajes malformados (heartbeats, etc.)
         }
       };
 
@@ -108,7 +129,7 @@
       eventSource.onerror = () => {
         estado.textContent = '❌ Error de conexión. Reconectando...';
         estado.className = 'text-sm text-center py-2 mb-4 rounded bg-red-900 text-red-300';
-        // EventSource reconecta automáticamente, no necesitamos lógica extra
+        // EventSource reconecta automáticamente, no necesito lógica extra
       };
     })();
   </script>

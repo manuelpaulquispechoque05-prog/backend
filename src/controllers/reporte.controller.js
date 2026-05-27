@@ -1,3 +1,26 @@
+// ============================================================
+// reporte.controller.js — Lógica de negocio de los reportes
+// ============================================================
+// ¿Qué es? El controlador que maneja las peticiones HTTP para CRUD
+//   de reportes de infraestructura universitaria.
+// ¿Para qué sirve? Cada función aquí recibe un req/res de Express,
+//   valida los datos, llama al modelo (reporte.model.js) y devuelve
+//   la respuesta JSON. Además, después de cada operación exitosa,
+//   publica un evento en Redis via publishEvent().
+// ¿Cómo funciona?
+//   1. Express enruta la petición a la función correspondiente
+//   2. La función valida, opera sobre el modelo y responde
+//   3. DESPUÉS de modificar datos, llama a publishEvent()
+//   4. publishEvent() envía el mensaje a Redis → subscriber → SSE
+// ¿Cómo se conecta?
+//   - Las funciones son llamadas desde reporte.routes.js
+//   - publishEvent() viene de redis.service.js
+//   - Los datos los obtiene de reporte.model.js
+// Yo, Paul Quispe - Programación IV, diseñé este controlador para
+// que cada CRUD dispare un evento de Redis sin acoplar la lógica
+// de negocio con la de tiempo real.
+// ============================================================
+
 import {
   getReportes,
   getReporteById,
@@ -6,13 +29,10 @@ import {
   deleteReporte,
   getReportesByUbicacion
 } from '../models/reporte.model.js';
+// publishEvent() viene de redis.service.js.
+// Cada handler CRUD publica un mensaje en el canal 'reportes:eventos' de Redis.
 import { publishEvent } from '../services/redis.service.js';
 
-/**
- * GET /api/reportes - Obtiene todos los reportes con filtro opcional por ubicación
- * Retorna: 200 OK con array de reportes
- * Autor: Paul Quispe - Programación IV
- */
 export const getAll = (req, res, next) => {
   try {
     const { ubicacion } = req.query;
@@ -30,11 +50,6 @@ export const getAll = (req, res, next) => {
   }
 };
 
-/**
- * GET /api/reportes/:id - Obtiene un reporte específico por su ID
- * Retorna: 200 OK si existe | 404 Not Found si no existe
- * Autor: Paul Quispe - Programación IV
- */
 export const getById = (req, res, next) => {
   try {
     const id = parseInt(req.params.id);
@@ -50,13 +65,6 @@ export const getById = (req, res, next) => {
   }
 };
 
-/**
- * POST /api/reportes - Crea un nuevo incidente en el sistema
- * Recibe: titulo (obligatorio), descripcion, ubicacion (obligatorio)
- * Retorna: 201 Created con el nuevo reporte | 400 Bad Request si faltan campos obligatorios
- * Validación: Verifico que 'titulo' y 'ubicacion' existan en el body
- * Autor: Paul Quispe - Programación IV
- */
 export const create = (req, res, next) => {
   try {
     const { titulo, descripcion, ubicacion } = req.body;
@@ -73,6 +81,7 @@ export const create = (req, res, next) => {
     }
 
     const nuevoReporte = createReporte({ titulo, descripcion, ubicacion });
+    // Publico evento en Redis: el subscriber lo recibe y broadcast() lo envía a los clientes SSE
     publishEvent('reporte.creado', nuevoReporte);
     res.status(201).json(nuevoReporte);
   } catch (error) {
@@ -80,11 +89,6 @@ export const create = (req, res, next) => {
   }
 };
 
-/**
- * PUT /api/reportes/:id - Actualiza un reporte existente (puede modificar estado, título, ubicación, descripción)
- * Retorna: 200 OK con reporte actualizado | 404 Not Found si no existe
- * Autor: Paul Quispe - Programación IV
- */
 export const update = (req, res, next) => {
   try {
     const id = parseInt(req.params.id);
@@ -108,11 +112,6 @@ export const update = (req, res, next) => {
   }
 };
 
-/**
- * DELETE /api/reportes/:id - Elimina un reporte del sistema
- * Retorna: 200 OK si se eliminó | 404 Not Found si no existe
- * Autor: Paul Quispe - Programación IV
- */
 export const deleteRe = (req, res, next) => {
   try {
     const id = parseInt(req.params.id);
@@ -129,13 +128,6 @@ export const deleteRe = (req, res, next) => {
   }
 };
 
-/**
- * PATCH /api/reportes/:id/estado - Actualiza parcialmente el estado de un reporte
- * Recibe: estado (obligatorio) - valores: 'Pendiente', 'En Reparación', 'Solucionado'
- * Retorna: 200 OK con reporte actualizado | 400 Bad Request si estado inválido | 404 Not Found si no existe
- * Validación: Verifico que el estado sea uno de los valores permitidos
- * Autor: Paul Quispe - Programación IV
- */
 export const patchEstado = (req, res, next) => {
   try {
     const id = parseInt(req.params.id);

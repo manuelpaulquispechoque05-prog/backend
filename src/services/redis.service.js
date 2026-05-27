@@ -1,3 +1,27 @@
+// ============================================================
+// redis.service.js — Conexión a Redis (Upstash) + Pub/Sub
+// ============================================================
+// ¿Qué es? El módulo que gestiona dos conexiones a Redis: una para
+//   publicar eventos (publisher) y otra para escucharlos (subscriber).
+// ¿Para qué sirve? Conecta nuestra API con Upstash Redis en la nube.
+//   Cada operación CRUD en reporte.controller.js llama a publishEvent()
+//   para enviar un mensaje al canal 'reportes:eventos'. El subscriber
+//   escucha ese canal y reenvía el evento a sse-manager para que
+//   todos los clientes SSE lo reciban en tiempo real.
+// ¿Cómo funciona?
+//   1. server.js llama a initRedis() al arrancar → crea publisher + subscriber
+//   2. server.js llama a startSubscriber() tras app.listen()
+//   3. subscriber.on('message') recibe Strings JSON desde Redis
+//   4. parsea el JSON y llama a broadcast() del sse-manager
+//   5. publishEvent() es llamado desde reporte.controller.js
+// ¿Cómo se conecta?
+//   - initRedis(), startSubscriber(), shutdownRedis() → llamados desde server.js
+//   - publishEvent() → llamado desde reporte.controller.js
+//   - broadcast() → llama a sse-manager.service.js para reenviar a clientes SSE
+// Yo, Paul Quispe - Programación IV, implementé dos conexiones separadas
+// porque Redis exige una conexión distinta para publicar y suscribirse.
+// ============================================================
+
 import Redis from 'ioredis';
 // Importamos broadcast para reenviar los eventos de Redis a todos los clientes SSE.
 // Esta es una dependencia UNIDIRECCIONAL: redis.service conoce a sse-manager,
