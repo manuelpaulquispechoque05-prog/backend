@@ -10,7 +10,7 @@
 //   - Los controladores (getAll, create, etc.) vienen de reporte.controller.js
 //   - addClient() viene de sse-manager.service.js (para el stream SSE)
 //   - Este router se exporta y se monta en server.js como /api/reportes
-// Yo, Paul Quispe - Programación IV, definí el orden de las rutas
+//  definí el orden de las rutas
 // para que /stream se evalúe ANTES que /:id y Express no confunda
 // "stream" con un ID dinámico.
 // ============================================================
@@ -53,7 +53,7 @@ const router = express.Router();
  *                 type: object
  *                 properties:
  *                   id:
- *                     type: integer
+ *                     type: string
  *                   titulo:
  *                     type: string
  *                   descripcion:
@@ -159,7 +159,7 @@ router.post('/', create);
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *         description: ID del reporte
  *     requestBody:
  *       required: true
@@ -195,7 +195,7 @@ router.put('/:id', update);
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *         description: ID del reporte
  *     requestBody:
  *       required: true
@@ -229,7 +229,7 @@ router.patch('/:id', patchEstado);
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
  *         description: ID del reporte
  *     responses:
  *       200:

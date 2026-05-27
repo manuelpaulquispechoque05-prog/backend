@@ -20,7 +20,7 @@
 //   - shutdownRedis() → cierra conexiones en SIGINT
 //   - reporteRoutes → importa routes/reporte.routes.js
 //   - swaggerSpec → importa swagger/config.js
-// Yo, Paul Quispe - Programación IV, estructuré este orden para que
+//  estructuré este orden para que
 // los archivos estáticos y el SSE no se vean afectados por el rate
 // limiter, y para que la documentación de Swagger sea accesible.
 // ============================================================

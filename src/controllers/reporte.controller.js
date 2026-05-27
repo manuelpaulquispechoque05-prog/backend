@@ -16,7 +16,7 @@
 //   - Las funciones son llamadas desde reporte.routes.js
 //   - publishEvent() viene de redis.service.js
 //   - Los datos los obtiene de reporte.model.js
-// Yo, Paul Quispe - Programación IV, diseñé este controlador para
+// diseñé este controlador para
 // que cada CRUD dispare un evento de Redis sin acoplar la lógica
 // de negocio con la de tiempo real.
 // ============================================================
@@ -33,15 +33,15 @@ import {
 // Cada handler CRUD publica un mensaje en el canal 'reportes:eventos' de Redis.
 import { publishEvent } from '../services/redis.service.js';
 
-export const getAll = (req, res, next) => {
+export const getAll = async (req, res, next) => {
   try {
     const { ubicacion } = req.query;
 
     let reportes;
     if (ubicacion) {
-      reportes = getReportesByUbicacion(ubicacion);
+      reportes = await getReportesByUbicacion(ubicacion);
     } else {
-      reportes = getReportes();
+      reportes = await getReportes();
     }
 
     res.status(200).json(reportes);
@@ -50,10 +50,9 @@ export const getAll = (req, res, next) => {
   }
 };
 
-export const getById = (req, res, next) => {
+export const getById = async (req, res, next) => {
   try {
-    const id = parseInt(req.params.id);
-    const reporte = getReporteById(id);
+    const reporte = await getReporteById(req.params.id);
 
     if (!reporte) {
       return res.status(404).json({ error: "Reporte no encontrado" });
@@ -65,7 +64,7 @@ export const getById = (req, res, next) => {
   }
 };
 
-export const create = (req, res, next) => {
+export const create = async (req, res, next) => {
   try {
     const { titulo, descripcion, ubicacion } = req.body;
 
@@ -80,7 +79,7 @@ export const create = (req, res, next) => {
       });
     }
 
-    const nuevoReporte = createReporte({ titulo, descripcion, ubicacion });
+    const nuevoReporte = await createReporte({ titulo, descripcion, ubicacion });
     // Publico evento en Redis: el subscriber lo recibe y broadcast() lo envía a los clientes SSE
     publishEvent('reporte.creado', nuevoReporte);
     res.status(201).json(nuevoReporte);
@@ -89,12 +88,11 @@ export const create = (req, res, next) => {
   }
 };
 
-export const update = (req, res, next) => {
+export const update = async (req, res, next) => {
   try {
-    const id = parseInt(req.params.id);
     const { titulo, descripcion, ubicacion, estado } = req.body;
 
-    const reporteActualizado = updateReporte(id, {
+    const reporteActualizado = await updateReporte(req.params.id, {
       titulo,
       descripcion,
       ubicacion,
@@ -112,25 +110,23 @@ export const update = (req, res, next) => {
   }
 };
 
-export const deleteRe = (req, res, next) => {
+export const deleteRe = async (req, res, next) => {
   try {
-    const id = parseInt(req.params.id);
-    const eliminado = deleteReporte(id);
+    const eliminado = await deleteReporte(req.params.id);
 
     if (!eliminado) {
       return res.status(404).json({ error: "Reporte no encontrado" });
     }
 
-    publishEvent('reporte.eliminado', { id });
+    publishEvent('reporte.eliminado', { id: req.params.id });
     res.status(200).json({ mensaje: "Reporte eliminado correctamente" });
   } catch (error) {
     next(error);
   }
 };
 
-export const patchEstado = (req, res, next) => {
+export const patchEstado = async (req, res, next) => {
   try {
-    const id = parseInt(req.params.id);
     const { estado } = req.body;
 
     const estadosValidos = ['Pendiente', 'En Reparación', 'Solucionado'];
@@ -142,7 +138,7 @@ export const patchEstado = (req, res, next) => {
       });
     }
 
-    const reporteActualizado = updateReporte(id, { estado });
+    const reporteActualizado = await updateReporte(req.params.id, { estado });
 
     if (!reporteActualizado) {
       return res.status(404).json({ error: "Reporte no encontrado" });

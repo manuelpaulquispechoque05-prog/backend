@@ -15,7 +15,7 @@
 // ¿Cómo se conecta?
 //   - swaggerSpec → importado en server.js y pasado a swaggerUi.setup()
 //   - Escanea src/routes/*.routes.js (reporte.routes.js) y src/server.js
-// Yo, Paul Quispe - Programación IV, configuré esto para que el
+//  configuré esto para que el
 // docente pueda probar la API desde /api-docs sin usar Postman.
 // ============================================================
 
