@@ -9,9 +9,9 @@
 //   1. cors → permite peticiones desde Angular (otro puerto/origen)
 //   2. express.json() → parsea el body de las peticiones
 //   3. express.static('public') → sirve index.html al docente
-//   4. limiteSeguridad (rate limiter) → protege rutas API (skip SSE)
+//   4. limiteSeguridad (rate limiter) → protege rutas API
 //   5. /api-docs (Swagger UI) → documentación interactiva
-//   6. /api/reportes (routes) → endpoints CRUD + SSE
+//   6. /api/reportes (routes) → endpoints CRUD
 //   7. /health → health check
 //   8. errorHandler → captura errores globales
 // ¿Cómo se conecta?
@@ -21,10 +21,11 @@
 //   - reporteRoutes → importa routes/reporte.routes.js
 //   - swaggerSpec → importa swagger/config.js
 //  estructuré este orden para que
-// los archivos estáticos y el SSE no se vean afectados por el rate
+// los archivos estáticos no se vean afectados por el rate
 // limiter, y para que la documentación de Swagger sea accesible.
 // ============================================================
 
+import http from 'http';
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -38,6 +39,8 @@ import { errorHandler } from './middlewares/errorHandler.js';
 // startSubscriber() arranca el listener de eventos del canal 'reportes:eventos'.
 // shutdownRedis() cierra ambas conexiones de forma graceful al detener el server.
 import { initRedis, startSubscriber, shutdownRedis } from './services/redis.service.js';
+// initSocketIO() crea el servidor Socket.io sobre el httpServer.
+import { initSocketIO } from './services/socket.service.js';
 // swaggerSpec contiene la configuración OpenAPI 3.0 escaneando los
 // comentarios /** @openapi */ en los archivos de rutas.
 import { swaggerSpec } from './swagger/config.js';
@@ -65,13 +68,9 @@ app.use(express.static('public'));
 
 // Rate limiter: máximo 10 peticiones por IP cada 1 minuto.
 // Protege los endpoints de API contra abusos (autoataques).
-// El SSE endpoint (/api/reportes/stream) está excluido con skip()
-// porque las reconexiones automáticas de EventSource consumirían
-// el límite muy rápido.
 const limiteSeguridad = rateLimit({
   windowMs: 60 * 1000,
   max: 10,
-  skip: (req) => req.path === '/api/reportes/stream',
   message: { message: "¡Alerta de Autoataque! Demasiadas peticiones desde esta IP. Inténtalo más tarde." },
   standardHeaders: true,
   legacyHeaders: false,
@@ -84,7 +83,7 @@ app.use(limiteSeguridad);
 // la interfaz visual donde el docente puede probar los endpoints.
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// Monta las rutas de reportes (CRUD + SSE stream)
+// Monta las rutas de reportes
 app.use('/api/reportes', reporteRoutes);
 app.use('/api/reportes/:reporteId/comentarios', comentarioRoutes);
 app.use('/api/auth', authRoutes);
@@ -95,11 +94,17 @@ app.get('/health', (req, res) => {
 
 app.use(errorHandler);
 
-app.listen(PORT, () => {
+// Crea un servidor HTTP nativo para que tanto Express como Socket.io
+// compartan el mismo puerto.
+const httpServer = http.createServer(app);
+// Inicializa Socket.io sobre el httpServer
+initSocketIO(httpServer);
+
+httpServer.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
   console.log(`📋 Endpoint de reportes: http://localhost:${PORT}/api/reportes`);
 
-  // Arranca el subscriber de Redis DESPUÉS de que el servidor Express
+  // Arranca el subscriber de Redis DESPUÉS de que el servidor
   // esté escuchando. Así si Redis falla, la API REST sigue funcionando.
   startSubscriber();
 

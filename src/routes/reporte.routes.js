@@ -2,17 +2,12 @@
 // reporte.routes.js — Definición de rutas de la API de reportes
 // ============================================================
 // ¿Qué es? El enrutador de Express que mapea cada URL a su controlador.
-// ¿Para qué sirve? Define los endpoints REST para reportes más el
-//   endpoint SSE /stream para tiempo real.
+// ¿Para qué sirve? Define los endpoints REST para reportes.
 // ¿Cómo funciona? Cada router.get/post/put/patch/delete enlaza una
-//   URL con una función del controlador o con un handler inline (SSE).
+//   URL con una función del controlador.
 // ¿Cómo se conecta?
 //   - Los controladores (getAll, create, etc.) vienen de reporte.controller.js
-//   - addClient() viene de sse-manager.service.js (para el stream SSE)
 //   - Este router se exporta y se monta en server.js como /api/reportes
-//  definí el orden de las rutas
-// para que /stream se evalúe ANTES que /:id y Express no confunda
-// "stream" con un ID dinámico.
 // ============================================================
 
 import express from 'express';
@@ -24,9 +19,6 @@ import {
   deleteRe,
   patchEstado
 } from '../controllers/reporte.controller.js';
-// addClient registra la response HTTP en el Set del sse-manager
-// para que broadcast() pueda escribirle eventos en tiempo real
-import { addClient } from '../services/sse-manager.service.js';
 import { authenticate, authorize } from '../middlewares/auth.js';
 
 const router = express.Router();
@@ -69,56 +61,6 @@ const router = express.Router();
  *                     format: date-time
  */
 router.get('/', getAll);
-/**
- * @openapi
- * /api/reportes/stream:
- *   get:
- *     summary: Stream SSE de eventos en tiempo real (Redis Pub/Sub)
- *     tags: [Reportes, Tiempo Real]
- *     responses:
- *       200:
- *         description: Conexión SSE establecida correctamente
- *         content:
- *           text/event-stream:
- *             schema:
- *               type: string
- */
-// Endpoint SSE — transmite eventos de Redis en tiempo real.
-// DEBE ir ANTES de /:id para que Express no interprete "stream"
-// como un parámetro dinámico. Importa addClient() del sse-manager
-// para registrar esta conexión y recibir eventos via broadcast().
-router.get('/stream', (req, res) => {
-  // Headers obligatorios del protocolo SSE:
-  // - text/event-stream: indica al navegador que es un stream, no HTML/JSON.
-  //   Sin esto, new EventSource(url) no se conecta.
-  // - no-cache: evita que proxies (Render, Cloudflare) cacheen el stream
-  //   y entreguen datos obsoletos al cliente.
-  // - keep-alive: mantiene el socket TCP abierto para seguir recibiendo
-  //   mensajes sin tener que reconectar en cada evento.
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    'Connection': 'keep-alive'
-  });
-
-  // Registro esta response (res) en el Set del sse-manager.
-  // Ahora broadcast() podrá escribirle los eventos que lleguen de Redis.
-  addClient(res);
-
-  // Heartbeat cada 30 segundos: Render y otros hosting cierran conexiones
-  // inactivas tras ~30 segundos. El prefijo ":" indica un comentario SSE
-  // que el navegador ignora pero mantiene la conexión "viva" ante el proxy.
-  const heartbeat = setInterval(() => res.write(': heartbeat\n\n'), 30000);
-
-  // Cuando el usuario cierra la pestaña o recarga la página:
-  // 1. Express emite el evento 'close' en el objeto req
-  // 2. Limpiamos el intervalo para no hacer res.write() sobre socket muerto
-  // 3. addClient() ya registró clients.delete(res) en este mismo evento,
-  //    así que no necesito hacerlo manualmente aquí.
-  req.on('close', () => {
-    clearInterval(heartbeat);
-  });
-});
 router.get('/:id', getById);
 /**
  * @openapi

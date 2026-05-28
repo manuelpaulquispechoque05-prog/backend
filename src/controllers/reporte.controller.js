@@ -11,7 +11,7 @@
 //   1. Express enruta la petición a la función correspondiente
 //   2. La función valida, opera sobre el modelo y responde
 //   3. DESPUÉS de modificar datos, llama a publishEvent()
-//   4. publishEvent() envía el mensaje a Redis → subscriber → SSE
+//   4. publishEvent() envía el mensaje a Redis → subscriber → Socket.io
 // ¿Cómo se conecta?
 //   - Las funciones son llamadas desde reporte.routes.js
 //   - publishEvent() viene de redis.service.js
@@ -96,7 +96,7 @@ export const create = async (req, res, next) => {
       ubicacion,
       usuarioId
     });
-    // Publico evento en Redis: el subscriber lo recibe y broadcast() lo envía a los clientes SSE
+    // Publico evento en Redis: el subscriber lo recibe y getIO().emit() lo envía a los clientes Socket.io
     publishEvent('reporte.creado', nuevoReporte);
     res.status(201).json(nuevoReporte);
   } catch (error) {

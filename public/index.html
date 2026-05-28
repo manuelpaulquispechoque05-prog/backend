@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!-- ============================================================
-     public/index.html — Página demo del stream SSE
+     public/index.html — Página demo de eventos en tiempo real via Socket.io
      ============================================================
      ¿Qué es? Una página HTML estática que se sirve en GET /.
      ¿Para qué sirve? El docente puede abrir esta página en el
@@ -9,11 +9,11 @@
        tener Angular instalado.
      ¿Cómo funciona?
        1. Express.serve('public') sirve este archivo en GET /
-       2. El JavaScript crea un EventSource al endpoint /api/reportes/stream
+       2. El JavaScript crea un socket Socket.io al servidor
        3. Cada vez que llega un evento, lo pinta en una lista con Tailwind
      ¿Cómo se conecta?
        - Se sirve desde server.js via express.static('public')
-       - Consume el mismo endpoint SSE que Angular usará después
+       - Consume los mismos eventos Socket.io que Angular usa
      Yo, Paul Quispe - Programación IV, creé esta página para cumplir
      con el requisito del Texto Guía del ingeniero Requena de tener
      una carpeta public/ con vista estática, y de paso tener una
@@ -26,11 +26,12 @@
   <title>StudySync - Eventos en Tiempo Real</title>
   <!-- Tailwind por CDN: sin build, sin npm, ideal para un demo rápido del docente -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
 </head>
 <body class="bg-gray-900 text-gray-100 min-h-screen flex flex-col items-center p-6">
   <header class="text-center mb-8">
     <h1 class="text-3xl font-bold text-emerald-400">StudySync</h1>
-    <p class="text-gray-400 mt-1">Eventos en Tiempo Real — Redis Pub/Sub + SSE</p>
+    <p class="text-gray-400 mt-1">Eventos en Tiempo Real — Redis Pub/Sub + Socket.io</p>
   </header>
 
   <div class="w-full max-w-2xl bg-gray-800 rounded-xl shadow-lg p-6">
@@ -39,9 +40,9 @@
       <span id="contador" class="text-sm text-gray-400">0 eventos</span>
     </div>
 
-    <!-- Indicador de estado de conexión al stream SSE -->
+    <!-- Indicador de estado de conexión al socket -->
     <div id="estado-conexion" class="text-sm text-center py-2 mb-4 rounded bg-gray-700 text-yellow-300">
-      Conectando al stream...
+      Conectando al servidor...
     </div>
 
     <!-- Lista dinámica donde se renderizan los eventos entrantes -->
@@ -53,44 +54,40 @@
   </footer>
 
   <script>
-    // IIFE: aislamos las variables del scope global
     (() => {
       const lista = document.getElementById('lista-eventos');
       const contador = document.getElementById('contador');
       const estado = document.getElementById('estado-conexion');
       let total = 0;
 
-      // EventSource: API nativa del navegador para SSE.
-      // La URL es relativa porque el index.html se sirve desde el mismo
-      // servidor Express que expone /api/reportes/stream.
-      const eventSource = new EventSource('/api/reportes/stream');
+      const socket = io({ transports: ['websocket', 'polling'] });
 
-      // Se dispara cuando el navegador logra conectar al stream
-      eventSource.onopen = () => {
-        estado.textContent = '✅ Conectado al stream de eventos';
+      socket.on('connect', () => {
+        estado.textContent = '✅ Conectado al servidor de eventos';
         estado.className = 'text-sm text-center py-2 mb-4 rounded bg-green-900 text-green-300';
-      };
+      });
 
-      // Se dispara en CADA mensaje que llega del stream
-      eventSource.onmessage = (e) => {
-        try {
-          // e.data es un string. El backend lo envía con formato "data: JSON\n\n"
-          const evento = JSON.parse(e.data);
+      socket.on('disconnect', () => {
+        estado.textContent = '❌ Desconectado. Reconectando...';
+        estado.className = 'text-sm text-center py-2 mb-4 rounded bg-red-900 text-red-300';
+      });
+
+      const eventosManejados = ['reporte.creado', 'reporte.actualizado', 'reporte.eliminado'];
+
+      eventosManejados.forEach((tipo) => {
+        socket.on(tipo, (data) => {
           total++;
           contador.textContent = `${total} eventos`;
 
-          // Creo un elemento <li> para cada evento con estilo según su tipo
           const item = document.createElement('li');
           item.className = 'bg-gray-700 rounded-lg p-3 border-l-4';
 
-          // Color del borde izquierdo según el tipo de evento
-          // Verde = creado, Azul = actualizado, Rojo = eliminado
           const badges = {
             'reporte.creado': 'border-green-500',
             'reporte.actualizado': 'border-blue-500',
             'reporte.eliminado': 'border-red-500'
           };
-          item.className += ' ' + (badges[evento.type] || 'border-gray-500');
+          item.className += ' ' + (badges[tipo] || 'border-gray-500');
 
           const labels = {
             'reporte.creado': 'CREADO',
@@ -98,39 +95,28 @@
             'reporte.eliminado': 'ELIMINADO'
           };
 
-          // Renderizo la tarjeta con la info del evento
           item.innerHTML = `
             <div class="flex justify-between items-start">
               <span class="text-xs font-bold uppercase tracking-wide
-                ${evento.type === 'reporte.creado' ? 'text-green-400' :
-                  evento.type === 'reporte.actualizado' ? 'text-blue-400' :
-                  evento.type === 'reporte.eliminado' ? 'text-red-400' : 'text-gray-400'}">
-                ${labels[evento.type] || evento.type}
+                ${tipo === 'reporte.creado' ? 'text-green-400' :
+                  tipo === 'reporte.actualizado' ? 'text-blue-400' :
+                  tipo === 'reporte.eliminado' ? 'text-red-400' : 'text-gray-400'}">
+                ${labels[tipo] || tipo}
               </span>
               <span class="text-xs text-gray-500">
-                ${new Date(evento.timestamp).toLocaleTimeString()}
+                ${new Date().toLocaleTimeString()}
               </span>
             </div>
             <p class="text-sm mt-1">
-              ${evento.data.titulo || `ID: ${evento.data.id}`}
+              ${data.titulo || `ID: ${data.id}`}
             </p>
-            ${evento.data.ubicacion ? `<p class="text-xs text-gray-400 mt-1">${evento.data.ubicacion}</p>` : ''}
-            ${evento.data.estado ? `<span class="inline-block text-xs mt-1 px-2 py-0.5 rounded-full bg-gray-600 text-gray-200">${evento.data.estado}</span>` : ''}
+            ${data.ubicacion ? `<p class="text-xs text-gray-400 mt-1">${data.ubicacion}</p>` : ''}
+            ${data.estado ? `<span class="inline-block text-xs mt-1 px-2 py-0.5 rounded-full bg-gray-600 text-gray-200">${data.estado}</span>` : ''}
           `;
 
-          // prepend = el evento más nuevo aparece arriba de la lista
           lista.prepend(item);
-        } catch {
-          // Ignoro silenciosamente mensajes malformados (heartbeats, etc.)
-        }
-      };
-
-      // Se dispara si la conexión se cae (timeout, servidor caído)
-      eventSource.onerror = () => {
-        estado.textContent = '❌ Error de conexión. Reconectando...';
-        estado.className = 'text-sm text-center py-2 mb-4 rounded bg-red-900 text-red-300';
-        // EventSource reconecta automáticamente, no necesito lógica extra
-      };
+        });
+      });
     })();
   </script>
 </body>

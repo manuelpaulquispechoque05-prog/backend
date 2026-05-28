@@ -6,27 +6,24 @@
 // ¿Para qué sirve? Conecta nuestra API con Upstash Redis en la nube.
 //   Cada operación CRUD en reporte.controller.js llama a publishEvent()
 //   para enviar un mensaje al canal 'reportes:eventos'. El subscriber
-//   escucha ese canal y reenvía el evento a sse-manager para que
-//   todos los clientes SSE lo reciban en tiempo real.
+//   escucha ese canal y reenvía el evento a Socket.io para que
+//   todos los clientes lo reciban en tiempo real.
 // ¿Cómo funciona?
 //   1. server.js llama a initRedis() al arrancar → crea publisher + subscriber
-//   2. server.js llama a startSubscriber() tras app.listen()
+//   2. server.js llama a startSubscriber() tras httpServer.listen()
 //   3. subscriber.on('message') recibe Strings JSON desde Redis
-//   4. parsea el JSON y llama a broadcast() del sse-manager
+//   4. parsea el JSON y llama a getIO().emit() de socket.service
 //   5. publishEvent() es llamado desde reporte.controller.js
 // ¿Cómo se conecta?
 //   - initRedis(), startSubscriber(), shutdownRedis() → llamados desde server.js
 //   - publishEvent() → llamado desde reporte.controller.js
-//   - broadcast() → llama a sse-manager.service.js para reenviar a clientes SSE
+//   - getIO().emit() → envía a todos los clientes Socket.io conectados
 // Yo, Paul Quispe - Programación IV, implementé dos conexiones separadas
 // porque Redis exige una conexión distinta para publicar y suscribirse.
 // ============================================================
 
 import Redis from 'ioredis';
-// Importamos broadcast para reenviar los eventos de Redis a todos los clientes SSE.
-// Esta es una dependencia UNIDIRECCIONAL: redis.service conoce a sse-manager,
-// pero sse-manager NO conoce a redis — evitamos dependencias circulares.
-import { broadcast } from './sse-manager.service.js';
+import { getIO } from './socket.service.js';
 
 const CHANNEL = 'reportes:eventos';
 
@@ -78,7 +75,7 @@ export const startSubscriber = async () => {
     await subscriber.subscribe(CHANNEL);
 
     // Listener principal: se ejecuta CADA VEZ que alguien publica en el canal 'reportes:eventos'
-    // Transformación del mensaje: JSON string → objeto JS → broadcast SSE
+    // Transformación del mensaje: JSON string → objeto JS → Socket.io emit
     subscriber.on('message', (channel, message) => {
       try {
         // 1. El mensaje llega como string JSON desde Redis
@@ -91,10 +88,8 @@ export const startSubscriber = async () => {
           `— Canal: ${channel}`
         );
 
-        // 3. Reenvía el evento a TODOS los clientes SSE conectados.
-        //    broadcast() serializará parsed a "data: JSON\n\n" (formato SSE)
-        //    y lo escribirá en cada response del Set.
-        broadcast(parsed);
+        // 3. Reenvía el evento a TODOS los clientes Socket.io conectados.
+        getIO().emit(parsed.type, parsed.data);
       } catch {
         // Si otro publicador envía un string no-JSON, no explota:
         // capturamos el error, logueamos un warning y seguimos escuchando.

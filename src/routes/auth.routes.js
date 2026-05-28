@@ -1,5 +1,5 @@
 import express from 'express';
-import { register, login, updatePerfil, getUsuarios } from '../controllers/auth.controller.js';
+import { register, login, updatePerfil, getUsuarios, adminCreateUser, adminUpdateUser, adminDeleteUser } from '../controllers/auth.controller.js';
 import { authenticate, authorize } from '../middlewares/auth.js';
 
 const router = express.Router();
@@ -150,5 +150,125 @@ router.put('/perfil', authenticate, updatePerfil);
  *         description: No autorizado (se requiere ADMINISTRADOR)
  */
 router.get('/usuarios', authenticate, authorize('ADMINISTRADOR'), getUsuarios);
+
+/**
+ * @openapi
+ * /api/auth/usuarios:
+ *   post:
+ *     summary: Crea un nuevo usuario (solo ADMINISTRADOR)
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - nombre
+ *               - email
+ *               - password
+ *             properties:
+ *               nombre:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 minLength: 6
+ *               rol:
+ *                 type: string
+ *                 enum: [USUARIO, ADMINISTRADOR]
+ *                 default: USUARIO
+ *     responses:
+ *       201:
+ *         description: Usuario creado exitosamente
+ *       400:
+ *         description: Faltan campos obligatorios
+ *       401:
+ *         description: No autenticado
+ *       403:
+ *         description: No autorizado (se requiere ADMINISTRADOR)
+ *       409:
+ *         description: El email ya está registrado
+ */
+router.post('/usuarios', authenticate, authorize('ADMINISTRADOR'), adminCreateUser);
+
+/**
+ * @openapi
+ * /api/auth/usuarios/{id}:
+ *   put:
+ *     summary: Actualiza un usuario existente (solo ADMINISTRADOR)
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del usuario a actualizar
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               nombre:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               rol:
+ *                 type: string
+ *                 enum: [USUARIO, ADMINISTRADOR]
+ *     responses:
+ *       200:
+ *         description: Usuario actualizado correctamente
+ *       400:
+ *         description: No se enviaron campos para actualizar
+ *       401:
+ *         description: No autenticado
+ *       403:
+ *         description: No autorizado (se requiere ADMINISTRADOR)
+ *       404:
+ *         description: Usuario no encontrado
+ *       409:
+ *         description: El email ya está en uso por otro usuario
+ */
+router.put('/usuarios/:id', authenticate, authorize('ADMINISTRADOR'), adminUpdateUser);
+
+/**
+ * @openapi
+ * /api/auth/usuarios/{id}:
+ *   delete:
+ *     summary: Elimina un usuario (solo ADMINISTRADOR)
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID del usuario a eliminar
+ *     responses:
+ *       200:
+ *         description: Usuario eliminado correctamente
+ *       400:
+ *         description: No puedes eliminarte a ti mismo
+ *       401:
+ *         description: No autenticado
+ *       403:
+ *         description: No autorizado (se requiere ADMINISTRADOR)
+ *       404:
+ *         description: Usuario no encontrado
+ */
+router.delete('/usuarios/:id', authenticate, authorize('ADMINISTRADOR'), adminDeleteUser);
 
 export default router;
