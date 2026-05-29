@@ -126,7 +126,7 @@ router.post('/', create);
  *       404:
  *         description: Reporte no encontrado
  */
-router.put('/:id', authenticate, authorize('ADMINISTRADOR'), update);
+router.put('/:id', authenticate, update);
 /**
  * @openapi
  * /api/reportes/{id}:
@@ -160,7 +160,7 @@ router.put('/:id', authenticate, authorize('ADMINISTRADOR'), update);
  *       404:
  *         description: Reporte no encontrado
  */
-router.patch('/:id', authenticate, authorize('ADMINISTRADOR'), patchEstado);
+router.patch('/:id', authenticate, patchEstado);
 /**
  * @openapi
  * /api/reportes/{id}:
@@ -180,6 +180,6 @@ router.patch('/:id', authenticate, authorize('ADMINISTRADOR'), patchEstado);
  *       404:
  *         description: Reporte no encontrado
  */
-router.delete('/:id', authenticate, authorize('ADMINISTRADOR'), deleteRe);
+router.delete('/:id', authenticate, deleteRe);
 
 export default router;
