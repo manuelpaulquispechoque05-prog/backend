@@ -13,14 +13,6 @@ export const initSocketIO = (httpServer) => {
   io.on('connection', (socket) => {
     console.log(`Cliente Socket.io conectado: ${socket.id}`);
 
-    socket.on('registrar-usuario', (data) => {
-      socket.broadcast.emit('usuario-conectado', {
-        nombre: data.nombre,
-        email: data.email,
-        hora: new Date().toISOString()
-      });
-    });
-
     socket.on('disconnect', () => {
       console.log(`Cliente Socket.io desconectado: ${socket.id}`);
     });
