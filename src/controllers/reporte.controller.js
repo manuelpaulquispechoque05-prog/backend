@@ -1,29 +1,4 @@
-// ============================================================
-// reporte.controller.js — Lógica de negocio de los reportes
-// ============================================================
-// ¿Qué es? El controlador que maneja las peticiones HTTP para CRUD
-//   de reportes de infraestructura universitaria.
-// ¿Para qué sirve? Cada función aquí recibe un req/res de Express,
-//   valida los datos, llama al modelo (reporte.model.js) y devuelve
-//   la respuesta JSON. Además, después de cada operación exitosa,
-//   publica un evento en Redis via publishEvent().
-// ¿Cómo funciona?
-//   1. Express enruta la petición a la función correspondiente
-//   2. La función valida, opera sobre el modelo y responde
-//   3. DESPUÉS de modificar datos, llama a publishEvent()
-//   4. publishEvent() envía el mensaje a Redis → subscriber → Socket.io
-// ¿Cómo se conecta?
-//   - Las funciones son llamadas desde reporte.routes.js
-//   - publishEvent() viene de redis.service.js
-//   - Los datos los obtiene de reporte.model.js
-// diseñé este controlador para
-// que cada CRUD dispare un evento de Redis sin acoplar la lógica
-// de negocio con la de tiempo real.
-// ============================================================
-
-// Yo, Paul Quispe — Controlador CRUD de reportes. Cada handler valida,
-// opera sobre el modelo y, si la operación es exitosa, publica un evento
-// en Redis via publishEvent() para que Socket.io lo transmita en vivo.
+// Lógica CRUD de reportes. Publica eventos en Redis tras cada operación exitosa.
 import {
   getReportes,
   getReporteById,
@@ -97,7 +72,7 @@ export const create = async (req, res, next) => {
       ubicacion,
       usuarioId
     });
-    // Publico evento en Redis: el subscriber lo recibe y getIO().emit() lo envía a los clientes Socket.io
+    // Notifica a los clientes Socket.io via Redis Pub/Sub
     publishEvent('reporte.creado', nuevoReporte);
     res.status(201).json(nuevoReporte);
   } catch (error) {

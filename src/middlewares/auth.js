@@ -1,5 +1,5 @@
-// Yo, Paul Quispe — Middleware de autenticación. Extraigo el token del header
-// Authorization: Bearer <token>, lo verifico con JWT y lo dejo en req.usuario.
+// Middleware que extrae y verifica el JWT del header Authorization.
+// Si es válido, inyecta req.usuario con id, email y rol.
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'clave-segura-estudysync-2024';
@@ -31,3 +31,5 @@ export const authorize = (...roles) => {
     next();
   };
 };
+
+// — Grupo Detoneitors

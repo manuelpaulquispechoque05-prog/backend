@@ -1,5 +1,4 @@
-// Yo, Paul Quispe — Capturo cualquier error no manejado y devuelvo una
-// respuesta JSON estructurada con código, timestamp, path y método HTTP.
+// Captura errores no manejados y devuelve una respuesta JSON estructurada.
 export const errorHandler = (err, req, res, next) => {
   console.error("Error detectado:", err.message);
   console.error("Stack:", err.stack);

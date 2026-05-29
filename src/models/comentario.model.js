@@ -1,5 +1,4 @@
-// Yo, Paul Quispe — Capa de acceso a datos para comentarios. Operaciones
-// CRUD básicas contra la tabla comentarios en Supabase via Prisma.
+// Consultas CRUD contra la tabla comentarios en Supabase via Prisma.
 import prisma from '../config/database.js';
 
 const includeUsuario = {

@@ -1,19 +1,4 @@
-// ============================================================
-// reporte.routes.js — Definición de rutas de la API de reportes
-// ============================================================
-// ¿Qué es? El enrutador de Express que mapea cada URL a su controlador.
-// ¿Para qué sirve? Define los endpoints REST para reportes.
-// ¿Cómo funciona? Cada router.get/post/put/patch/delete enlaza una
-//   URL con una función del controlador.
-// ¿Cómo se conecta?
-//   - Los controladores (getAll, create, etc.) vienen de reporte.controller.js
-//   - Este router se exporta y se monta en server.js como /api/reportes
-// ============================================================
-
-// Yo, Paul Quispe — Rutas CRUD de reportes de infraestructura.
-// Quité authorize('ADMINISTRADOR') de PUT/PATCH/DELETE para que USUARIO
-// también pueda editar y eliminar sus propios reportes. La documentación
-// @openapi NO tenía security: bearerAuth — corregido a nivel global en swagger/config.js.
+// Rutas CRUD de reportes. authorize removido de PUT/PATCH/DELETE para USUARIO.
 import express from 'express';
 import {
   getAll,

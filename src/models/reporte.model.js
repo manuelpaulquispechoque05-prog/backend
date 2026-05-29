@@ -1,5 +1,4 @@
-// Yo, Paul Quispe — Capa de acceso a datos para reportes. Cada función
-// encapsula una consulta Prisma y devuelve el resultado al controlador.
+// Consultas CRUD contra la tabla reportes en Supabase via Prisma.
 import prisma from '../config/database.js';
 
 const includeUsuario = {

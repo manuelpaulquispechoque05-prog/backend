@@ -1,5 +1,4 @@
-// Yo, Paul Quispe — Programación IV. Instancio Prisma Client una sola vez
-// y lo exporto para que todos los modelos reutilicen la misma conexión a Supabase.
+// Instancia singleton de Prisma Client para toda la aplicación.
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();

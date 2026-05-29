@@ -1,24 +1,6 @@
 <!DOCTYPE html>
-<!-- ============================================================
-     public/index.html — Página demo de eventos en tiempo real via Socket.io
-     ============================================================
-     ¿Qué es? Una página HTML estática que se sirve en GET /.
-     ¿Para qué sirve? El docente puede abrir esta página en el
-       navegador y ver en tiempo real los eventos que ocurren en la
-       API (crear, actualizar, eliminar reportes) sin necesidad de
-       tener Angular instalado.
-     ¿Cómo funciona?
-       1. Express.serve('public') sirve este archivo en GET /
-       2. El JavaScript crea un socket Socket.io al servidor
-       3. Cada vez que llega un evento, lo pinta en una lista con Tailwind
-     ¿Cómo se conecta?
-       - Se sirve desde server.js via express.static('public')
-       - Consume los mismos eventos Socket.io que Angular usa
-     Yo, Paul Quispe - Programación IV, creé esta página para cumplir
-     con el requisito del Texto Guía del ingeniero Requena de tener
-     una carpeta public/ con vista estática, y de paso tener una
-     herramienta de depuración visual durante el desarrollo.
-     ============================================================ -->
+<!-- Demo estática de eventos en tiempo real via Socket.io.
+     Sirve GET / para que el docente vea los eventos sin Angular. -->
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -50,7 +32,7 @@
   </div>
 
   <footer class="mt-8 text-gray-500 text-xs">
-    Programación IV — Paul Quispe
+    Grupo Detoneitors — Programación IV
   </footer>
 
   <script>
