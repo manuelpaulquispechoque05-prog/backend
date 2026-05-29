@@ -1,3 +1,7 @@
+// Yo, Paul Quispe — Defino las rutas de autenticación y administración de
+// usuarios. Cada endpoint protegido lleva authenticate y opcionalmente
+// authorize('ADMINISTRADOR'). La documentación @openapi usa security:
+// bearerAuth para que Swagger UI envíe el token JWT correctamente.
 import express from 'express';
 import { register, login, updatePerfil, getUsuarios, adminCreateUser, adminUpdateUser, adminDeleteUser } from '../controllers/auth.controller.js';
 import { authenticate, authorize } from '../middlewares/auth.js';

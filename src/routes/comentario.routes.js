@@ -1,3 +1,5 @@
+// Yo, Paul Quispe — Rutas de comentarios anidadas bajo /api/reportes/:reporteId/comentarios.
+// Uso mergeParams: true para que el controlador acceda a req.params.reporteId.
 import express from 'express';
 import { authenticate, authorize } from '../middlewares/auth.js';
 import { getByReporte, create, deleteCom } from '../controllers/comentario.controller.js';

@@ -1,3 +1,6 @@
+// Yo, Paul Quispe — CRUD de comentarios anidados a reportes. Cada función
+// recibe el reporteId de req.params (mergeParams en rutas) y el usuario
+// autenticado de req.usuario (inyectado por auth.middleware.js).
 import {
   getComentariosByReporte,
   createComentario,

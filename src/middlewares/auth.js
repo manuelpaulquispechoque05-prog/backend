@@ -1,3 +1,5 @@
+// Yo, Paul Quispe — Middleware de autenticación. Extraigo el token del header
+// Authorization: Bearer <token>, lo verifico con JWT y lo dejo en req.usuario.
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'clave-segura-estudysync-2024';

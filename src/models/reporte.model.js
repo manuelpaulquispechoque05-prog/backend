@@ -1,3 +1,5 @@
+// Yo, Paul Quispe — Capa de acceso a datos para reportes. Cada función
+// encapsula una consulta Prisma y devuelve el resultado al controlador.
 import prisma from '../config/database.js';
 
 const includeUsuario = {

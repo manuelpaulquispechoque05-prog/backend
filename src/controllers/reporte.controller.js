@@ -21,6 +21,9 @@
 // de negocio con la de tiempo real.
 // ============================================================
 
+// Yo, Paul Quispe — Controlador CRUD de reportes. Cada handler valida,
+// opera sobre el modelo y, si la operación es exitosa, publica un evento
+// en Redis via publishEvent() para que Socket.io lo transmita en vivo.
 import {
   getReportes,
   getReporteById,
@@ -29,8 +32,6 @@ import {
   deleteReporte,
   getReportesByUbicacion
 } from '../models/reporte.model.js';
-// publishEvent() viene de redis.service.js.
-// Cada handler CRUD publica un mensaje en el canal 'reportes:eventos' de Redis.
 import { publishEvent } from '../services/redis.service.js';
 import prisma from '../config/database.js';
 

@@ -1,3 +1,8 @@
+// Yo, Paul Quispe — Controlador de autenticación. Manejo registro, login,
+// perfil y CRUD de usuarios (admin). Después de cada operación publico
+// eventos en Redis para que Socket.io los reenvíe en tiempo real.
+// En login emito 'usuario-conectado' directo por getIO() (sin Redis) para
+// evitar duplicados con el flujo Pub/Sub.
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../config/database.js';

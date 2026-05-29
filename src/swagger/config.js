@@ -19,6 +19,9 @@
 // docente pueda probar la API desde /api-docs sin usar Postman.
 // ============================================================
 
+// Yo, Paul Quispe — Configuración OpenAPI 3.0 para Swagger UI.
+// Agregué security: [{ bearerAuth: [] }] a nivel global para que todos los
+// endpoints protegidos envíen el token JWT desde el botón Authorize.
 import swaggerJsdoc from 'swagger-jsdoc';
 
 const options = {
@@ -37,6 +40,7 @@ const options = {
         }
       }
     },
+    security: [{ bearerAuth: [] }],
   },
   apis: ['./src/routes/*.routes.js', './src/server.js'],
 };

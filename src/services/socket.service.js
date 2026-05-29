@@ -1,3 +1,6 @@
+// Yo, Paul Quispe — Servidor Socket.io montado sobre el mismo httpServer
+// de Express. initSocketIO() crea la instancia, getIO() la expone para que
+// redis.service.js y auth.controller.js emitan eventos a los clientes.
 import { Server } from 'socket.io';
 
 let io;

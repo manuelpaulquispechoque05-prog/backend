@@ -10,6 +10,10 @@
 //   - Este router se exporta y se monta en server.js como /api/reportes
 // ============================================================
 
+// Yo, Paul Quispe — Rutas CRUD de reportes de infraestructura.
+// Quité authorize('ADMINISTRADOR') de PUT/PATCH/DELETE para que USUARIO
+// también pueda editar y eliminar sus propios reportes. La documentación
+// @openapi NO tenía security: bearerAuth — corregido a nivel global en swagger/config.js.
 import express from 'express';
 import {
   getAll,
