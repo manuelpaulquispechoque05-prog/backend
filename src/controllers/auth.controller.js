@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '../config/database.js';
 import { publishEvent } from '../services/redis.service.js';
+import { getIO } from '../services/socket.service.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'clave-segura-estudysync-2024';
 
@@ -83,6 +84,14 @@ export const login = async (req, res, next) => {
     const { password: _, ...usuarioSinPass } = usuario;
 
     res.status(200).json({ token, usuario: usuarioSinPass });
+
+    try {
+      getIO().emit('usuario-conectado', {
+        nombre: usuario.nombre,
+        email: usuario.email,
+        hora: new Date().toISOString()
+      });
+    } catch {}
   } catch (error) {
     next(error);
   }
