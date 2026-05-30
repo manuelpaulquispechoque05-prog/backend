@@ -79,7 +79,7 @@ router.get('/:id', getById);
  *       400:
  *         description: Faltan campos obligatorios
  */
-router.post('/', create);
+router.post('/', authenticate, create);
 /**
  * @openapi
  * /api/reportes/{id}:
@@ -170,5 +170,27 @@ router.patch('/:id', authenticate, patchEstado);
  *         description: Reporte no encontrado
  */
 router.delete('/:id', authenticate, deleteRe);
+
+/**
+ * @openapi
+ * /api/reportes/cache:
+ *   delete:
+ *     summary: Limpia el caché de Redis (solo ADMINISTRADOR)
+ *     tags: [Reportes]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Caché limpiado correctamente
+ *       401:
+ *         description: No autenticado
+ *       403:
+ *         description: No autorizado (se requiere ADMINISTRADOR)
+ */
+router.delete('/cache', authenticate, authorize('ADMINISTRADOR'), async (req, res) => {
+  const { clearAllCache } = await import('../services/redis.service.js');
+  const limpiadas = await clearAllCache();
+  res.json({ mensaje: `✅ Caché de Redis limpiado. ${limpiadas} clave(s) eliminada(s).` });
+});
 
 export default router;

@@ -8,29 +8,26 @@ import {
   getReportesByUbicacion
 } from '../models/reporte.model.js';
 // Importa publishEvent para notificar a Redis cuando se crea/actualiza/elimina un reporte.
-import { publishEvent } from '../services/redis.service.js';
-// Importa Prisma directamente para consultas puntuales que no están en el modelo.
-import prisma from '../config/database.js';
-
-// Obtiene todos los reportes, opcionalmente filtrados por ubicación (query param ?ubicacion=...).
+import { publishEvent, getCache, setCache, delCache, clearAllCache } from '../services/redis.service.js';
+// Obtiene todos los reportes con cache-aside (Redis + 30s TTL).
 export const getAll = async (req, res, next) => {
   try {
-    // Lee el query parameter 'ubicacion' de la URL (ej: /api/reportes?ubicacion=Aula).
-    const { ubicacion } = req.query;
+    // Cache-aside: intentar Redis primero
+    const cached = await getCache('reportes:all');
+    if (cached) return res.status(200).json(cached);
 
-    // Variable que almacenará la lista de reportes obtenida.
+    const { ubicacion } = req.query;
     let reportes;
-    // Si se especificó una ubicación, filtra por ella; si no, trae todos los reportes.
     if (ubicacion) {
       reportes = await getReportesByUbicacion(ubicacion);
     } else {
       reportes = await getReportes();
     }
 
-    // Devuelve la lista de reportes en formato JSON con código 200.
+    // Guardar en caché por 30 segundos
+    setCache('reportes:all', reportes, 30);
     res.status(200).json(reportes);
   } catch (error) {
-    // Pasa cualquier error al manejador global (errorHandler.js).
     next(error);
   }
 };
@@ -71,28 +68,15 @@ export const create = async (req, res, next) => {
       });
     }
 
-    // ID fijo del administrador por defecto (usado si el reporte se crea desde Swagger sin token).
-    const ADMIN_ID = "b32a0547-3ffb-41d4-91be-9820df02bbd4";
-
-    // Usa el ID del usuario autenticado o el ADMIN_ID si no hay token.
-    let usuarioId = req.usuario?.id || ADMIN_ID;
-
-    // Verifica que el usuarioId exista realmente en la base de datos.
-    try {
-      await prisma.usuario.findUniqueOrThrow({ where: { id: usuarioId } });
-    } catch {
-      // Si el usuario no existe (ej: ADMIN_ID fue borrado), asigna null.
-      usuarioId = null;
-    }
-
-    // Crea el reporte en Supabase a través del modelo.
+    // Crea el reporte con el usuario autenticado (req.usuario.id del JWT).
     const nuevoReporte = await createReporte({
       titulo,
       descripcion,
       ubicacion,
-      usuarioId
+      usuarioId: req.usuario.id
     });
-    // Publica evento 'reporte.creado' en Redis para que Socket.io lo reenvíe a los clientes conectados.
+    // Invalida caché y publica evento 'reporte.creado' para los clientes conectados.
+    delCache('reportes:all');
     publishEvent('reporte.creado', nuevoReporte);
     // Devuelve el reporte creado con código 201 (Created).
     res.status(201).json(nuevoReporte);
@@ -120,9 +104,9 @@ export const update = async (req, res, next) => {
       return res.status(404).json({ error: "Reporte no encontrado" });
     }
 
-    // Publica evento 'reporte.actualizado' en Redis para notificar a los clientes.
+    // Invalida caché y publica evento 'reporte.actualizado' en Redis.
+    delCache('reportes:all');
     publishEvent('reporte.actualizado', reporteActualizado);
-    // Devuelve el reporte actualizado.
     res.status(200).json(reporteActualizado);
   } catch (error) {
     next(error);
@@ -140,10 +124,20 @@ export const deleteRe = async (req, res, next) => {
       return res.status(404).json({ error: "Reporte no encontrado" });
     }
 
-    // Publica evento 'reporte.eliminado' en Redis con el ID del reporte borrado.
-    publishEvent('reporte.eliminado', { id: req.params.id });
-    // Devuelve confirmación de eliminación.
-    res.status(200).json({ mensaje: "Reporte eliminado correctamente" });
+    // Invalida caché y publica evento 'reporte.eliminado' en Redis.
+    delCache('reportes:all');
+    publishEvent('reporte.actualizado', reporteActualizado);
+    res.status(200).json(reporteActualizado);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Limpia manualmente todo el caché de Redis (solo ADMINISTRADOR via DELETE /api/reportes/cache).
+export const clearCache = async (req, res, next) => {
+  try {
+    const limpiadas = await clearAllCache();
+    res.json({ mensaje: `✅ Caché de Redis limpiado. ${limpiadas} clave(s) eliminada(s).` });
   } catch (error) {
     next(error);
   }
@@ -174,9 +168,9 @@ export const patchEstado = async (req, res, next) => {
       return res.status(404).json({ error: "Reporte no encontrado" });
     }
 
-    // Publica evento 'reporte.actualizado' en Redis (mismo evento que update, cambia el tipo de dato).
+    // Invalida caché y publica evento 'reporte.actualizado' en Redis.
+    delCache('reportes:all');
     publishEvent('reporte.actualizado', reporteActualizado);
-    // Devuelve el reporte con el estado actualizado.
     res.status(200).json(reporteActualizado);
   } catch (error) {
     next(error);

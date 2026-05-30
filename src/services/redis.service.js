@@ -82,6 +82,51 @@ export const publishEvent = (type, data) => {
   );
 };
 
+// ===== CACHÉ =====
+
+/** Guarda en Redis con TTL (segundos). */
+export const setCache = (key, data, ttl = 30) => {
+  if (!publisher) return;
+  publisher.setex(key, ttl, JSON.stringify(data)).catch((err) =>
+    console.warn('[Redis Cache] Error al guardar:', err.message)
+  );
+};
+
+/** Obtiene de Redis o null si no existe. */
+export const getCache = async (key) => {
+  if (!publisher) return null;
+  try {
+    const raw = await publisher.get(key);
+    if (!raw) return null;
+    console.log(`[Redis Cache] HIT — clave: ${key}`);
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+};
+
+/** Elimina una clave específica. */
+export const delCache = (key) => {
+  if (!publisher) return;
+  publisher.del(key).catch((err) =>
+    console.warn('[Redis Cache] Error al eliminar:', err.message)
+  );
+};
+
+/** Limpia todas las claves que empiezan con "reportes:". */
+export const clearAllCache = async () => {
+  if (!publisher) return 0;
+  try {
+    const keys = await publisher.keys('reportes:*');
+    if (keys.length) await publisher.del(...keys);
+    console.log(`[Redis Cache] Limpiadas ${keys.length} claves`);
+    return keys.length;
+  } catch (err) {
+    console.warn('[Redis Cache] Error al limpiar:', err.message);
+    return 0;
+  }
+};
+
 /** Cierra publisher y subscriber. */
 export const shutdownRedis = async () => {
   if (subscriber) {
