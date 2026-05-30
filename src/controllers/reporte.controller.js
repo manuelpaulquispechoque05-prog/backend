@@ -99,9 +99,13 @@ export const update = async (req, res, next) => {
       estado
     });
 
-    // Si updateReporte devolvió null, el reporte no existe (Prisma lanzó P2025, el modelo lo captura).
     if (!reporteActualizado) {
       return res.status(404).json({ error: "Reporte no encontrado" });
+    }
+
+    // Verifica: dueño del reporte o ADMINISTRADOR
+    if (req.usuario.rol !== 'ADMINISTRADOR' && reporteActualizado.usuarioId !== req.usuario.id) {
+      return res.status(403).json({ error: "No puedes editar un reporte de otro usuario" });
     }
 
     // Invalida caché y publica evento 'reporte.actualizado' en Redis.
@@ -113,21 +117,27 @@ export const update = async (req, res, next) => {
   }
 };
 
-// Elimina un reporte. Recibe id por URL.
+// Elimina un reporte. Solo el dueño o ADMINISTRADOR pueden eliminar.
 export const deleteRe = async (req, res, next) => {
   try {
-    // Llama al modelo para eliminar el reporte de Supabase.
-    const eliminado = await deleteReporte(req.params.id);
-
-    // Si deleteReporte devolvió false, el reporte no existía.
-    if (!eliminado) {
+    // Busca el reporte primero para verificar permisos
+    const reporte = await getReporteById(req.params.id);
+    if (!reporte) {
       return res.status(404).json({ error: "Reporte no encontrado" });
     }
 
-    // Invalida caché y publica evento 'reporte.eliminado' en Redis.
+    // Verifica: dueño del reporte o ADMINISTRADOR
+    if (req.usuario.rol !== 'ADMINISTRADOR' && reporte.usuarioId !== req.usuario.id) {
+      return res.status(403).json({ error: "No puedes eliminar un reporte de otro usuario" });
+    }
+
+    // Elimina el reporte
+    await deleteReporte(req.params.id);
+
+    // Invalida caché y publica evento
     delCache('reportes:all');
-    publishEvent('reporte.actualizado', reporteActualizado);
-    res.status(200).json(reporteActualizado);
+    publishEvent('reporte.eliminado', { id: req.params.id });
+    res.status(200).json({ mensaje: "Reporte eliminado correctamente" });
   } catch (error) {
     next(error);
   }
@@ -163,9 +173,13 @@ export const patchEstado = async (req, res, next) => {
     // Actualiza solo el campo estado del reporte en Supabase.
     const reporteActualizado = await updateReporte(req.params.id, { estado });
 
-    // Si el reporte no existe, devuelve 404.
     if (!reporteActualizado) {
       return res.status(404).json({ error: "Reporte no encontrado" });
+    }
+
+    // Verifica: dueño del reporte o ADMINISTRADOR
+    if (req.usuario.rol !== 'ADMINISTRADOR' && reporteActualizado.usuarioId !== req.usuario.id) {
+      return res.status(403).json({ error: "No puedes editar un reporte de otro usuario" });
     }
 
     // Invalida caché y publica evento 'reporte.actualizado' en Redis.
